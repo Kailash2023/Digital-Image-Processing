@@ -1,0 +1,109 @@
+`timescale 1ns / 1ps
+
+
+
+
+module GF_BRAM_Lookup (
+    input wire clk,
+    input wire rst,
+    input wire [7:0] addr_in,        // External address input
+    output reg [7:0] gf_data_out     // Output data from BRAM
+);
+
+    // Internal signal to hold BRAM output
+    wire [7:0] gf_xor;
+    
+
+
+    // Address register to feed BRAM
+    reg [7:0] bram_addr_gf_xor;
+
+    // BRAM instantiation
+    blk_mem_gen_0 GF_values (
+        .clka(clk),
+        .ena(1'b1),
+        .wea(1'b0),
+        .addra(addr_in),
+        .dina(8'd0),
+        .douta(gf_xor)
+    );
+
+    // Feed address and capture output with 1-cycle latency
+    always @(posedge clk) begin
+        if (rst) begin
+            bram_addr_gf_xor <= 8'h01;
+            gf_data_out <= 8'd1;
+        end else begin
+            bram_addr_gf_xor <= addr_in;     // Apply external address
+            gf_data_out <= gf_xor;           // Capture BRAM output
+        end
+    end
+
+endmodule
+
+
+
+
+
+/////////////test_bench///////////////////////////
+
+
+
+
+`timescale 1ns / 1ps
+
+
+
+module tb_GF_BRAM_Lookup;
+
+    // Testbench signals
+    reg clk;
+    reg rst;
+    reg [7:0] addr_in;
+    wire [7:0] gf_data_out;
+
+    // Instantiate the DUT (Device Under Test)
+    GF_BRAM_Lookup dut (
+        .clk(clk),
+        .rst(rst),
+        .addr_in(addr_in),
+        .gf_data_out(gf_data_out)
+    );
+
+    // Clock generation: 10ns period
+    initial clk = 1;
+    always #5 clk = ~clk;
+
+    // Stimulus
+    initial begin
+        $display("Starting testbench...");
+        rst = 1;
+        addr_in = 8'h10;
+
+        // Wait for a few cycles
+        #10;
+        rst = 0;
+
+        // Apply a sequence of addresses
+        
+            addr_in = 8'h1f;  // Random address
+            #10; // Wait one clock cycle
+            addr_in = 8'h2f;  // Random address
+            #10;
+            addr_in = 8'h3f;  // Random address
+            #10;
+            addr_in = 8'h4f;  // Random address
+            #10;
+            addr_in = 8'hff;  // Random address
+            #10;
+            
+            
+            $display("addr_in = %h, gf_data_out = %d", addr_in, gf_data_out);
+        
+
+        // Finish simulation
+        #20;
+        $finish;
+    end
+
+endmodule
